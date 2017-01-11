@@ -12,7 +12,6 @@ headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36'}
 names_start_letters = [letter.upper() for letter in list(map(chr, range(97, 123)))] + list(
     [str(i) for i in range(0, 11)])
-types = list(range(1, 11))
 data = {'licstatus': 'all',
         'ratype': 'RATYPE',
         'roleType': 'individual',
@@ -20,17 +19,51 @@ data = {'licstatus': 'all',
         'page': '1',
         'start': '0',
         'limit': '50000'}
-directory = 'Result'
+directory = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Result')
 epoch = datetime.datetime.utcfromtimestamp(0)
 total_scraped = 0
 
 
 def main():
+    def IsInt(s):
+        try:
+            int(s)
+            return True
+        except ValueError:
+            return False
+    print('Enter from type ( 1 - 10 )')
+    type_from = input()
+    if not IsInt(type_from):
+        print('Type should be number')
+        return
+    type_from = int(type_from)
+    print('Enter to type ( 1 - 10 )')
+    type_to = input()
+    if not IsInt(type_to):
+        print('Type should be number')
+        return
+    type_to = int(type_to)
+    if type_from > 10 or type_from < 1:
+        print('Enter valid type ( 1 - 10 )')
+        return
+    if type_to > 10 or type_to < 1:
+        print('Enter valid type ( 1 - 10 )')
+        return
+    if type_to < type_from:
+        type_from, type_to = type_to, type_from
+    types = list(range(type_from, type_to + 1))
+    print('Script will scrape:')
+    print('Types: ' + str(types))
+    print('Name starts with: A-Z and 1-9')
     perms = list(itertools.product(types, names_start_letters))
-    print(len(perms))
-    loop = asyncio.get_event_loop()
-    future = asyncio.ensure_future(run(perms))
-    loop.run_until_complete(future)
+    try:
+        loop = asyncio.get_event_loop()
+        future = asyncio.ensure_future(run(perms))
+        loop.run_until_complete(future)
+    except RuntimeError:
+        print('Exiting...')
+    finally:
+        print('Your results in ' + directory)
 
 
 async def fetch(data, session):
@@ -46,7 +79,6 @@ async def fetch(data, session):
             try:
                 j = json.loads(j)
             except json.JSONDecodeError:
-                print(data)
                 return
             with open(os.path.join(directory, file_path + '.csv'),
                       'w', newline='', encoding='utf-8') as file:
@@ -63,7 +95,7 @@ async def fetch(data, session):
                                      item['hasActiveLicence'], item['isActiveEo'],
                                      item['address']])
     except:
-        print('Error at ' + str(data))
+        pass
 
 
 async def bound_fetch(sem, data, session):
