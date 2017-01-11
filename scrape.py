@@ -34,33 +34,36 @@ def main():
 
 
 async def fetch(data, session):
-    param = int((datetime.datetime.now() - epoch).total_seconds() * 1000.0)
-    url = main_url % param
-    async with session.post(url, headers=headers, data=data, timeout=500) as response:
-        global total_scraped
-        total_scraped += 1
-        file_path = 'Type -' + str(data['ratype']) + ' - Letter - ' + str(data['nameStartLetter'])
-        print(file_path + ' . Total scraped ' + str(total_scraped))
-        j = await response.text()
-        try:
-            j = json.loads(j)
-        except json.JSONDecodeError:
-            print(data)
-            return
-        with open(os.path.join(directory, file_path + '.csv'),
-                  'w', newline='', encoding='utf-8') as file:
-            writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            writer.writerow(
-                ['CE Reference', 'Name', 'Chinese name', 'Entity type',
-                 'Is individual', 'is EO', 'is Corporative',
-                 'is Ri', 'Has active licence', 'Is active eo', 'Address'])
-            for item in j['items']:
-                writer.writerow([item['ceref'], item['name'],
-                                 item['nameChi'], item['entityType'],
-                                 item['isIndi'], item['isEo'],
-                                 item['isCorp'], item['isRi'],
-                                 item['hasActiveLicence'], item['isActiveEo'],
-                                 item['address']])
+    try:
+        param = int((datetime.datetime.now() - epoch).total_seconds() * 1000.0)
+        url = main_url % param
+        async with session.post(url, headers=headers, data=data, timeout=500) as response:
+            global total_scraped
+            total_scraped += 1
+            file_path = 'Type -' + str(data['ratype']) + ' - Letter - ' + str(data['nameStartLetter'])
+            print(file_path + ' . Total scraped ' + str(total_scraped))
+            j = await response.text()
+            try:
+                j = json.loads(j)
+            except json.JSONDecodeError:
+                print(data)
+                return
+            with open(os.path.join(directory, file_path + '.csv'),
+                      'w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                writer.writerow(
+                    ['CE Reference', 'Name', 'Chinese name', 'Entity type',
+                     'Is individual', 'is EO', 'is Corporative',
+                     'is Ri', 'Has active licence', 'Is active eo', 'Address'])
+                for item in j['items']:
+                    writer.writerow([item['ceref'], item['name'],
+                                     item['nameChi'], item['entityType'],
+                                     item['isIndi'], item['isEo'],
+                                     item['isCorp'], item['isRi'],
+                                     item['hasActiveLicence'], item['isActiveEo'],
+                                     item['address']])
+    except:
+        print('Error at ' + str(data))
 
 
 async def bound_fetch(sem, data, session):
