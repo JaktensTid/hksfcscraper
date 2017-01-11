@@ -19,7 +19,7 @@ data = {'licstatus': 'all',
         'page': '1',
         'start': '0',
         'limit': '50000'}
-directory = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Result')
+directory = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'Result'))
 epoch = datetime.datetime.utcfromtimestamp(0)
 total_scraped = 0
 
