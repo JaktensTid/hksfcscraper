@@ -14,7 +14,7 @@ names_start_letters = [letter.upper() for letter in list(map(chr, range(97, 123)
     [str(i) for i in range(0, 11)])
 data = {'licstatus': 'all',
         'ratype': 'RATYPE',
-        'roleType': 'individual',
+        'roleType': 'corporation',
         'nameStartLetter': 'LETTER',
         'page': '1',
         'start': '0',
@@ -25,12 +25,19 @@ total_scraped = 0
 
 
 def main():
+    global data
     def IsInt(s):
         try:
             int(s)
             return True
         except ValueError:
             return False
+    print('Enter role type (individual - "i", corporation - "c")')
+    role_type = input()
+    if role_type != 'i' and role_type != 'c':
+        print('Invalid role type')
+        main()
+    data['roleType'] = 'individual' if role_type == 'i' else 'corporation'
     print('Enter from type ( 1 - 10 )')
     type_from = input()
     if not IsInt(type_from):
@@ -55,6 +62,7 @@ def main():
     print('Script will scrape:')
     print('Types: ' + str(types))
     print('Name starts with: A-Z and 1-9')
+    print('Processing, please wait . . .')
     perms = list(itertools.product(types, names_start_letters))
     try:
         loop = asyncio.get_event_loop()
@@ -73,27 +81,34 @@ async def fetch(data, session):
         async with session.post(url, headers=headers, data=data, timeout=500) as response:
             global total_scraped
             total_scraped += 1
-            file_path = 'Type -' + str(data['ratype']) + ' - Letter - ' + str(data['nameStartLetter'])
+            file_path = 'Type - ' + str(data['ratype']) + ' - Letter - ' + str(data['nameStartLetter'])
             print(file_path + ' . Total scraped ' + str(total_scraped))
             j = await response.text()
             try:
                 j = json.loads(j)
             except json.JSONDecodeError:
                 return
-            with open(os.path.join(directory, file_path + '.csv'),
-                      'w', newline='', encoding='utf-8') as file:
+            with open(os.path.join(directory, file_path + '.csv'), 'w', newline='', encoding='utf-8') as file:
                 writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
                 writer.writerow(
                     ['CE Reference', 'Name', 'Chinese name', 'Entity type',
                      'Is individual', 'is EO', 'is Corporative',
-                     'is Ri', 'Has active licence', 'Is active eo', 'Address'])
+                     'is Ri', 'Has active licence', 'Is active eo', 'full address chin',
+                     'central entity', 'full address'])
                 for item in j['items']:
+                    address = item['address']
+                    full_address_chin, central_entity, full_address = None, None, None
+                    if address:
+                        full_address_chin = address['fullAddressChin']
+                        central_entity = address['centralEntity']
+                        full_address = address['fullAddress']
                     writer.writerow([item['ceref'], item['name'],
                                      item['nameChi'], item['entityType'],
                                      item['isIndi'], item['isEo'],
                                      item['isCorp'], item['isRi'],
                                      item['hasActiveLicence'], item['isActiveEo'],
-                                     item['address']])
+                                     full_address_chin, central_entity,
+                                     full_address])
     except:
         pass
 
