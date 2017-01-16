@@ -1,4 +1,5 @@
-('E:\\FreelanceProjects\\hksfcscraper\\build\\scrape\\out00-PKG.pkg',
+('C:\\Program Files '
+ '(x86)\\Python\\Python35\\Scripts\\build\\scrape\\out00-PKG.pkg',
  {'BINARY': 1,
   'DATA': 1,
   'EXECUTABLE': 1,
@@ -7,7 +8,8 @@
   'PYSOURCE': 1,
   'PYZ': 0},
  [('out00-PYZ.pyz',
-   'E:\\FreelanceProjects\\hksfcscraper\\build\\scrape\\out00-PYZ.pyz',
+   'C:\\Program Files '
+   '(x86)\\Python\\Python35\\Scripts\\build\\scrape\\out00-PYZ.pyz',
    'PYZ'),
   ('struct',
    'C:\\Program Files (x86)\\Python\\Python35\\lib\\struct.pyo',
@@ -30,7 +32,8 @@
    'PYSOURCE'),
   ('scrape', 'E:\\FreelanceProjects\\hksfcscraper\\scrape.py', 'PYSOURCE'),
   ('scrape.exe.manifest',
-   'E:\\FreelanceProjects\\hksfcscraper\\build\\scrape\\scrape.exe.manifest',
+   'C:\\Program Files '
+   '(x86)\\Python\\Python35\\Scripts\\build\\scrape\\scrape.exe.manifest',
    'BINARY')],
  True,
  False,

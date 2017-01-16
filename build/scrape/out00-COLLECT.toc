@@ -1,8 +1,10 @@
 ([('scrape.exe',
-   'E:\\FreelanceProjects\\hksfcscraper\\build\\scrape\\scrape.exe',
+   'C:\\Program Files '
+   '(x86)\\Python\\Python35\\Scripts\\build\\scrape\\scrape.exe',
    'EXECUTABLE'),
   ('scrape.exe.manifest',
-   'E:\\FreelanceProjects\\hksfcscraper\\build\\scrape\\scrape.exe.manifest',
+   'C:\\Program Files '
+   '(x86)\\Python\\Python35\\Scripts\\build\\scrape\\scrape.exe.manifest',
    'BINARY'),
   ('python35.dll',
    'C:\\Program Files (x86)\\Python\\Python35\\python35.dll',
@@ -25,6 +27,9 @@
   ('_hashlib',
    'C:\\Program Files (x86)\\Python\\Python35\\DLLs\\_hashlib.pyd',
    'EXTENSION'),
+  ('select',
+   'C:\\Program Files (x86)\\Python\\Python35\\DLLs\\select.pyd',
+   'EXTENSION'),
   ('_bz2',
    'C:\\Program Files (x86)\\Python\\Python35\\DLLs\\_bz2.pyd',
    'EXTENSION'),
@@ -33,9 +38,6 @@
    'EXTENSION'),
   ('_socket',
    'C:\\Program Files (x86)\\Python\\Python35\\DLLs\\_socket.pyd',
-   'EXTENSION'),
-  ('select',
-   'C:\\Program Files (x86)\\Python\\Python35\\DLLs\\select.pyd',
    'EXTENSION'),
   ('yarl._quoting',
    'C:\\Program Files '
@@ -59,11 +61,12 @@
   ('_overlapped',
    'C:\\Program Files (x86)\\Python\\Python35\\DLLs\\_overlapped.pyd',
    'EXTENSION'),
-  ('MSVCR100.dll', 'C:\\Windows\\system32\\msvcr100.dll', 'BINARY'),
   ('pywintypes35.dll',
    'C:\\Program Files '
    '(x86)\\Python\\Python35\\lib\\site-packages\\pypiwin32_system32\\pywintypes35.dll',
    'BINARY'),
+  ('MSVCR100.dll', 'C:\\Windows\\system32\\msvcr100.dll', 'BINARY'),
   ('base_library.zip',
-   'E:\\FreelanceProjects\\hksfcscraper\\build\\scrape\\base_library.zip',
+   'C:\\Program Files '
+   '(x86)\\Python\\Python35\\Scripts\\build\\scrape\\base_library.zip',
    'DATA')],)
