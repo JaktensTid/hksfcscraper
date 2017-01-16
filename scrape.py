@@ -25,12 +25,24 @@ total_scraped = 0
 
 
 def main():
+    global data
+    print('Enter directory of output')
+    global directory
+    directory = input()
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     def IsInt(s):
         try:
             int(s)
             return True
         except ValueError:
             return False
+    print('Enter role type (individual - "i", corporation - "c")')
+    role_type = input()
+    if role_type != 'i' and role_type != 'c':
+        print('Invalid role type')
+        main()
+    data['roleType'] = 'individual' if role_type == 'i' else 'corporation'
     print('Enter from type ( 1 - 10 )')
     type_from = input()
     if not IsInt(type_from):
@@ -88,12 +100,19 @@ async def fetch(data, session):
                      'Is individual', 'is EO', 'is Corporative',
                      'is Ri', 'Has active licence', 'Is active eo', 'Address'])
                 for item in j['items']:
+                    address = item['address']
+                    full_address_chin, central_entity, full_address = None, None, None
+                    if address:
+                        full_address_chin = address['fullAddressChin']
+                        central_entity = address['centralEntity']
+                        full_address = address['fullAddress']
                     writer.writerow([item['ceref'], item['name'],
                                      item['nameChi'], item['entityType'],
                                      item['isIndi'], item['isEo'],
                                      item['isCorp'], item['isRi'],
                                      item['hasActiveLicence'], item['isActiveEo'],
-                                     item['address']])
+                                     full_address_chin, central_entity,
+                                     full_address])
     except:
         pass
 
