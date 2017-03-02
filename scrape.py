@@ -70,13 +70,25 @@ def main():
     try:
         loop = asyncio.get_event_loop()
         future = asyncio.ensure_future(run(perms))
-        loop.run_until_complete(future)
+        responses = loop.run_until_complete(future)._result
+
+        loop = asyncio.get_event_loop()
+        future = asyncio.ensure_future(run_details(responses[0:2]))
+        corporation_details = loop.run_until_complete(future)._result
+        for items, data in responses:
+            for corporation in items['items']:
+                for type, j, ceref in corporation_details:
+                    if corporation['ceref'] == ceref:
+                        corporation['type'] = j
+            to_csv(items, data)
+
     except RuntimeError:
         print('Exiting...')
     finally:
         print('Your results in ' + directory)
 
-def to_csv(items):
+def to_csv(j, data):
+    file_path = 'Type - ' + str(data['ratype']) + ' - Letter - ' + str(data['nameStartLetter'])
     with open(os.path.join(directory, file_path + '.csv'), 'w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         writer.writerow(
@@ -105,50 +117,57 @@ def to_csv(items):
                                               item_details['ro'], item_details['rep'],
                                               item_details['co']])
 
-async def fetch_details(url, type, det_session):
+
+async def fetch_details(url, type, ceref, det_session):
     async with det_session.get(url) as response:
-        #try:
         content = await response.text()
+        def get_json(regexp):
+            res = re.findall(regexp, content)
+            if res:
+                return re.findall(regexp, content)[0]
+            else:
+                return ''
         matches = ''
         if type == 'details':
-            matches = re.match('(?<=var raDetailData = )(.*)(?=;)', content).group()
+            matches = get_json('(?<=var raDetailData = )(.*)(?=;)')
         if type == 'addresses':
-            address_data = re.match('(?<=var addressData = \[)(.*)(?=];)', content).group()
-            email_data = re.match('(?<=var emailData = \[)(.*)(?=];)', content).group()
-            website_data = re.match('(?<=var websiteData = \[)(.*)(?=];)', content).group()
-            matches = ','.join([address_data, email_data, website_data])
+            address_data = get_json('(?<=var addressData = \[)(.*)(?=];)')
+            email_data = get_json('(?<=var emailData = \[)(.*)(?=];)')
+            website_data = get_json('(?<=var websiteData = \[)(.*)(?=];)')
+            matches = ','.join(item for item in [address_data, email_data, website_data] if item)
         if type == 'ro':
-            matches = re.match('(?<=var roData = )(.*)(?=;)', content).group()
+            matches = get_json('(?<=var roData = )(.*)(?=;)')
         if type == 'rep':
-            matches = re.match('(?<=var repData = )(.*)(?=;)', content).group()
+            matches = get_json('(?<=var repData = )(.*)(?=;)')
         if type == 'co':
-            matches = re.match('(?<=var cofficerData = )(.*)(?=;)', content).group()
-        return type, matches
-        #except Exception:
-        #    pass
+            matches = get_json('(?<=var cofficerData = )(.*)(?=;)')
+        print('Scraped corporation ' + type + '  with ceref ' + ceref)
+        return type, matches, ceref
 
-async def bound_details(sem, url, type, det_session):
+
+async def bound_details(sem, url, type, ceref, det_session):
     try:
         async with sem:
-            return await fetch_details(url, type, det_session)
+            return await fetch_details(url, type, ceref, det_session)
     except aiohttp.errors.ClientOSError:
         print(str(data) + ' - ERROR')
         async with sem:
-            return await fetch_details(url, type, det_session)
+            return await fetch_details(url, type, ceref, det_session)
 
-async def run_details(items):
+async def run_details(corp_chunks):
     tasks = []
-    sem = asyncio.Semaphore(5)
+    sem = asyncio.Semaphore(50)
 
-    async with ClientSession() as det_session
-        for ceref in [item['ceref'] for item in items]:
-            for url, type in details:
-                task = asyncio.ensure_future(bound_details(sem, url % ceref, type, det_session))
-                tasks.append(task)
+    async with ClientSession() as det_session:
+        for items, data in [chunk for chunk in corp_chunks if chunk]:
+            for corporation in items['items']:
+                for url, type in details:
+                    task = asyncio.ensure_future(bound_details(sem, url % corporation['ceref'], type, corporation['ceref'], det_session))
+                    tasks.append(task)
 
         responses = asyncio.gather(*tasks)
         await responses
-        return dict(responses)
+        return responses
 
 async def fetch(data, session):
     try:
@@ -157,14 +176,14 @@ async def fetch(data, session):
         async with session.post(url, headers=headers, data=data, timeout=500) as response:
             global total_scraped
             total_scraped += 1
-            file_path = 'Type - ' + str(data['ratype']) + ' - Letter - ' + str(data['nameStartLetter'])
-            print(file_path + ' . Total scraped ' + str(total_scraped))
+
             j = await response.text()
             try:
                 j = json.loads(j)
+                print('Total scraped ' + str(total_scraped) + ' . Items count : ' + str(len(j['items'])))
+                return j, data
             except json.JSONDecodeError:
-                return
-
+                return None
     except:
         pass
 
@@ -196,6 +215,7 @@ async def run(perms):
 
         responses = asyncio.gather(*tasks)
         await responses
+        return responses
 
 
 
