@@ -73,13 +73,18 @@ def main():
         responses = loop.run_until_complete(future)._result
 
         loop = asyncio.get_event_loop()
-        future = asyncio.ensure_future(run_details(responses[0:2]))
+        future = asyncio.ensure_future(run_details(responses))
         corporation_details = loop.run_until_complete(future)._result
-        for items, data in responses:
+        for items, data in [resp for resp in responses if resp]:
             for corporation in items['items']:
+                corporation['details'] = ''
+                corporation['addresses'] = ''
+                corporation['ro'] = ''
+                corporation['rep'] = ''
+                corporation['co'] = ''
                 for type, j, ceref in corporation_details:
                     if corporation['ceref'] == ceref:
-                        corporation['type'] = j
+                        corporation[type] = j
             to_csv(items, data)
 
     except RuntimeError:
@@ -98,9 +103,6 @@ def to_csv(j, data):
              'central entity', 'full address', 'details', 'addresses', 'ro',
              'rep', 'co'])
         for item in j['items']:
-            loop = asyncio.get_event_loop()
-            future = asyncio.ensure_future(run_details(item['ceref']))
-            item_details = loop.run_until_complete(future)
             address = item['address']
             full_address_chin, central_entity, full_address = None, None, None
             if address:
@@ -113,9 +115,9 @@ def to_csv(j, data):
                              item['isCorp'], item['isRi'],
                              item['hasActiveLicence'], item['isActiveEo'],
                              full_address_chin, central_entity,
-                             full_address] + [item_details['details'], item_details['addresses'],
-                                              item_details['ro'], item_details['rep'],
-                                              item_details['co']])
+                             full_address, item['details'], item['addresses'],
+                                              item['ro'], item['rep'],
+                                              item['co']])
 
 
 async def fetch_details(url, type, ceref, det_session):
