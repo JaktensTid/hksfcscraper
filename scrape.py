@@ -1,4 +1,5 @@
 import os
+import re
 from unicodecsv import csv
 import json
 import itertools
@@ -22,7 +23,9 @@ data = {'licstatus': 'all',
 directory = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'Result'))
 epoch = datetime.datetime.utcfromtimestamp(0)
 total_scraped = 0
-
+details = [('http://www.sfc.hk/publicregWeb/corp/%s/details', 'details'), ('http://www.sfc.hk/publicregWeb/corp/%s/addresses', 'addresses'),
+           ('http://www.sfc.hk/publicregWeb/corp/%s/ro', 'ro'), ('http://www.sfc.hk/publicregWeb/corp/%s/rep', 'rep'),
+           ('http://www.sfc.hk/publicregWeb/corp/%s/co', 'co')]
 
 def main():
     global data
@@ -73,6 +76,79 @@ def main():
     finally:
         print('Your results in ' + directory)
 
+def to_csv(items):
+    with open(os.path.join(directory, file_path + '.csv'), 'w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(
+            ['CE Reference', 'Name', 'Chinese name', 'Entity type',
+             'Is individual', 'is EO', 'is Corporative',
+             'is Ri', 'Has active licence', 'Is active eo', 'full address chin',
+             'central entity', 'full address', 'details', 'addresses', 'ro',
+             'rep', 'co'])
+        for item in j['items']:
+            loop = asyncio.get_event_loop()
+            future = asyncio.ensure_future(run_details(item['ceref']))
+            item_details = loop.run_until_complete(future)
+            address = item['address']
+            full_address_chin, central_entity, full_address = None, None, None
+            if address:
+                full_address_chin = address['fullAddressChin']
+                central_entity = address['centralEntity']
+                full_address = address['fullAddress']
+            writer.writerow([item['ceref'], item['name'],
+                             item['nameChi'], item['entityType'],
+                             item['isIndi'], item['isEo'],
+                             item['isCorp'], item['isRi'],
+                             item['hasActiveLicence'], item['isActiveEo'],
+                             full_address_chin, central_entity,
+                             full_address] + [item_details['details'], item_details['addresses'],
+                                              item_details['ro'], item_details['rep'],
+                                              item_details['co']])
+
+async def fetch_details(url, type, det_session):
+    async with det_session.get(url) as response:
+        #try:
+        content = await response.text()
+        matches = ''
+        if type == 'details':
+            matches = re.match('(?<=var raDetailData = )(.*)(?=;)', content).group()
+        if type == 'addresses':
+            address_data = re.match('(?<=var addressData = \[)(.*)(?=];)', content).group()
+            email_data = re.match('(?<=var emailData = \[)(.*)(?=];)', content).group()
+            website_data = re.match('(?<=var websiteData = \[)(.*)(?=];)', content).group()
+            matches = ','.join([address_data, email_data, website_data])
+        if type == 'ro':
+            matches = re.match('(?<=var roData = )(.*)(?=;)', content).group()
+        if type == 'rep':
+            matches = re.match('(?<=var repData = )(.*)(?=;)', content).group()
+        if type == 'co':
+            matches = re.match('(?<=var cofficerData = )(.*)(?=;)', content).group()
+        return type, matches
+        #except Exception:
+        #    pass
+
+async def bound_details(sem, url, type, det_session):
+    try:
+        async with sem:
+            return await fetch_details(url, type, det_session)
+    except aiohttp.errors.ClientOSError:
+        print(str(data) + ' - ERROR')
+        async with sem:
+            return await fetch_details(url, type, det_session)
+
+async def run_details(items):
+    tasks = []
+    sem = asyncio.Semaphore(5)
+
+    async with ClientSession() as det_session
+        for ceref in [item['ceref'] for item in items]:
+            for url, type in details:
+                task = asyncio.ensure_future(bound_details(sem, url % ceref, type, det_session))
+                tasks.append(task)
+
+        responses = asyncio.gather(*tasks)
+        await responses
+        return dict(responses)
 
 async def fetch(data, session):
     try:
@@ -88,27 +164,7 @@ async def fetch(data, session):
                 j = json.loads(j)
             except json.JSONDecodeError:
                 return
-            with open(os.path.join(directory, file_path + '.csv'), 'w', newline='', encoding='utf-8') as file:
-                writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                writer.writerow(
-                    ['CE Reference', 'Name', 'Chinese name', 'Entity type',
-                     'Is individual', 'is EO', 'is Corporative',
-                     'is Ri', 'Has active licence', 'Is active eo', 'full address chin',
-                     'central entity', 'full address'])
-                for item in j['items']:
-                    address = item['address']
-                    full_address_chin, central_entity, full_address = None, None, None
-                    if address:
-                        full_address_chin = address['fullAddressChin']
-                        central_entity = address['centralEntity']
-                        full_address = address['fullAddress']
-                    writer.writerow([item['ceref'], item['name'],
-                                     item['nameChi'], item['entityType'],
-                                     item['isIndi'], item['isEo'],
-                                     item['isCorp'], item['isRi'],
-                                     item['hasActiveLicence'], item['isActiveEo'],
-                                     full_address_chin, central_entity,
-                                     full_address])
+
     except:
         pass
 
@@ -125,7 +181,7 @@ async def bound_fetch(sem, data, session):
 
 async def run(perms):
     tasks = []
-    sem = asyncio.Semaphore(30)
+    sem = asyncio.Semaphore(50)
 
     if not os.path.exists(directory):
         os.makedirs(directory)
